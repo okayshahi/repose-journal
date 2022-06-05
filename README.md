@@ -1,6 +1,6 @@
 # Repose
 Repose is a Mood Journaling Web App that can be used to personally add and track your moods by selecting your mood, adding a title and sharing some thoughts. Repose also allows your to track previous journals you created.
-![repose index](https://github.com/okayshahi/repose/blob/main/public/assets/readme/screenshot-repose.png)
+![repose index](https://github.com/okayshahi/repose-journal/blob/main/public/assets/readme/screenshot-repose.png)
 
 # pwa-starter
 
