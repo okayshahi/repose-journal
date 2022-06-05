@@ -6,14 +6,13 @@ import { registerSW } from 'virtual:pwa-register';
 import './script/pages/app-home';
 import './script/components/header';
 import './styles/global.css';
+import './script/components/hero-decor';
 
 @customElement('app-index')
 export class AppIndex extends LitElement {
   static get styles() {
     return css`
       main {
-        padding-left: 16px;
-        padding-right: 16px;
         padding-bottom: 16px;
       }
       #routerOutlet > * {
@@ -68,10 +67,10 @@ export class AppIndex extends LitElement {
         children: [
           { path: '/', component: 'app-home' },
           {
-            path: '/about',
-            component: 'app-about',
+            path: '/journal',
+            component: 'app-journal',
             action: async () => {
-              await import('./script/pages/app-about.js');
+              await import('./script/pages/app-journal.js');
             },
           },
         ],

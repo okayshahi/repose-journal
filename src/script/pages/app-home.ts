@@ -1,8 +1,11 @@
 import { LitElement, css, html } from 'lit';
-import { property, customElement } from 'lit/decorators.js';
+import { property, customElement, state } from 'lit/decorators.js';
+import localforage from 'localforage';
+import { JournalEntry } from '../interfaces/journalEntry';
+import { dbName, getLast7Days, seedLocalStorage } from '../utils/journal';
 
 // For more info on the @pwabuilder/pwainstall component click here https://github.com/pwa-builder/pwa-install
-import '@pwabuilder/pwainstall';
+// import '@pwabuilder/pwainstall';
 
 @customElement('app-home')
 export class AppHome extends LitElement {
@@ -10,71 +13,117 @@ export class AppHome extends LitElement {
   // For more information on using properties and state in lit
   // check out this link https://lit.dev/docs/components/properties/
   @property() message = 'Welcome!';
+  @property() journalDB: any;
+  @property() last7Days = getLast7Days();
+  @state() private last7DaysJournal!: any;
 
   static get styles() {
     return css`
-      #welcomeBar {
+      .hero {
+        height: 90vh;
+        min-height: 600px;
+        max-height: 900px;
+        max-width: 100%;
+        max-width: 100vw;
+        padding: 0 48px;
+        overflow-x: hidden;
+        position: relative;
+      }
+      .hero__inner {
         display: flex;
-        justify-content: center;
-        align-items: center;
         flex-direction: column;
+        position: relative;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
       }
-
-      #welcomeBar fluent-card {
-        margin-bottom: 12px;
-      }
-
-      #welcomeCard,
-      #infoCard {
-        padding: 18px;
-        padding-top: 0px;
-      }
-
-      pwa-install {
-        position: absolute;
-        bottom: 16px;
-        right: 16px;
-      }
-
-
-      #mainInfo fluent-anchor::part(control), #infoCard fluent-anchor::part(control) {
+      .hero__top-content {
+        flex: 1 1 0px;
         color: white;
+        margin: 4rem 5rem 0;
+        text-align: center;
+        max-height: 25vh;
       }
-
-      @media (min-width: 1024px) {
-        #welcomeCard,
-        #infoCard {
-          width: 54%;
+      .hero__top-content h1 {
+        font-weight: normal;
+        font-size: 48px;
+      }
+      .hero__top-content fluent-anchor {
+        margin-top: 1rem;
+      }
+      .hero__top-content fluent-anchor::part(control) {
+        border-radius: 15px;
+        color: #107652;
+      }
+      .hero__top-content fluent-anchor::part(control):hover {
+        color: #2E765E;
+      }
+      .hero__top-content .entries {
+        display: flex;
+        flex-direction: column;
+        margin-top: 2rem;
+        max-height: 50vh;
+        overflow: auto;
+      }
+      .hero__top-content .entries fluent-accordion-item.main-accordion {
+        height: fit-content;
+        -webkit-backdrop-filter: blur(20px);
+        background: none;
+        backdrop-filter: blur(20px);
+        background-color: rgba(255,255,255,.3);
+      }
+      .hero__top-content .entries fluent-accordion-item.main-accordion::part(heading) {
+        font-size: 1rem;
+        font-weight: 200;
+      }
+      .hero__top-content .entries fluent-accordion-item.main-accordion fluent-accordion-item.child-accordion {
+        background-color: rgb(216, 167, 177, 0.3);
+      }
+      .hero__top-content .entries fluent-accordion-item::part(region) {
+        background: inherit;
+      }
+      .hero__top-content .entries fluent-accordion-item::part(icon) {
+        border-radius: 50%;
+      }
+      .hero__top-content .entries fluent-accordion-item .panel .panel__body {
+        text-align: left;
+      }
+      .hero__bottom-content {
+        flex: 1 1 0px;
+        height: 50vh;
+      }
+      .hero__bottom-content img {
+        width: 100%;
+        height: 100%;
+      }
+      @media screen and (max-width: 840px) and (min-width: 625px) {
+        .hero__top-content {
+          margin: 4rem 2rem 0px;
         }
       }
-
-      @media (horizontal-viewport-segments: 2) {
-        #welcomeBar {
-          flex-direction: row;
-          align-items: flex-start;
-          justify-content: space-between;
+      @media screen and (max-width: 625px) and (min-width: 480px) {
+        .hero__top-content {
+          margin: 2rem 2rem 0px;
         }
-
-        #welcomeCard {
-          margin-right: 64px;
+        .hero__bottom-content {
+          margin-top: 7rem;
         }
       }
-
-      @media(prefers-color-scheme: light) {
-        fluent-card {
-          --fill-color: #edebe9;
+      @media screen and (max-width: 480px) {
+        header {
+          margin: 0 2rem;
         }
-
-        #mainInfo fluent-anchor::part(control), #infoCard fluent-anchor::part(control) {
-          color: initial;
+        .hero {
+          padding: 0 1rem;
         }
-      }
-
-      @media(prefers-color-scheme: dark) {
-        fluent-card {
-          --fill-color: #4e4e4e;
-          color: white;
-          border: none;
+        .hero__top-content {
+          margin: 1rem 0;
+        }
+        .hero__top-content h1 {
+          font-size: 36px;
+        }
+        .hero__bottom-content {
+          margin-top: 7rem;
         }
       }
     `;
@@ -82,104 +131,88 @@ export class AppHome extends LitElement {
 
   constructor() {
     super();
+
+    this.journalDB = localforage.createInstance({name: dbName});
   }
 
   async firstUpdated() {
-    // this method is a lifecycle even in lit
-    // for more info check out the lit docs https://lit.dev/docs/components/lifecycle/
-    console.log('This is your home page');
+    // seed local storage with sample entries
+    if (await this.journalDB.getItem(this.last7Days[0]) === null) {
+      seedLocalStorage(this.journalDB);
+    }
+
+    const last7DaysJournal = await this.getLast7DaysJournal();
+    if (last7DaysJournal && last7DaysJournal.length > 0) {
+      this.last7DaysJournal = last7DaysJournal;
+    }
+
+    console.log(this.last7DaysJournal);
   }
 
-  share() {
-    if ((navigator as any).share) {
-      (navigator as any).share({
-        title: 'PWABuilder pwa-starter',
-        text: 'Check out the PWABuilder pwa-starter!',
-        url: 'https://github.com/pwa-builder/pwa-starter',
-      });
+  private async getLast7DaysJournal() {
+    try {
+      let collection = [];
+      for (let i=0; i < this.last7Days.length; i++) {
+        collection.push(await this.journalDB.getItem(this.last7Days[i]));
+      }
+
+      if (collection.length > 0) {
+        return collection;
+      } else {
+        return null;
+      }
+    } catch (err) {
+      return;
     }
   }
 
   render() {
     return html`
-      <app-header></app-header>
-      <div>
-        <div id="welcomeBar">
-          <fluent-card id="welcomeCard">
-            <h2>${this.message}</h2>
-
-            <p>
-              For more information on the PWABuilder pwa-starter, check out the
-              <fluent-anchor
-                href="https://github.com/pwa-builder/pwa-starter/wiki/Getting-Started"
-                appearance="hypertext"
-                >Documentation on Github</fluent-anchor
-              >.
-            </p>
-
-            <p id="mainInfo">
-              Welcome to the
-              <fluent-anchor href="https://pwabuilder.com" appearance="hypertext"
-                >PWABuilder</fluent-anchor
-              >
-              pwa-starter! Be sure to head back to
-              <fluent-anchor href="https://pwabuilder.com" appearance="hypertext"
-                >PWABuilder</fluent-anchor
-              >
-              when you are ready to ship this PWA to the Microsoft Store, Google Play
-              and the Apple App Store!
-            </p>
-
-            ${'share' in navigator
-              ? html`<fluent-button appearance="primary" @click="${this.share}"
-                  >Share this Starter!</fluent-button
-                >`
-              : null}
-          </fluent-card>
-
-          <fluent-card id="infoCard">
-            <h2>Technology Used</h2>
-
-            <ul>
-              <li>
-                <fluent-anchor
-                  href="https://www.typescriptlang.org/"
-                  appearance="hypertext"
-                  >TypeScript</fluent-anchor
-                >
-              </li>
-
-              <li>
-                <fluent-anchor
-                  href="https://lit.dev"
-                  appearance="hypertext"
-                  >lit</fluent-anchor
-                >
-              </li>
-
-              <li>
-                <fluent-anchor
-                  href="https://docs.microsoft.com/en-us/fluent-ui/web-components/"
-                  appearance="hypertext"
-                  >Fluent Web Components</fluent-anchor
-                >
-              </li>
-
-              <li>
-                <fluent-anchor
-                  href="https://vaadin.github.io/vaadin-router/vaadin-router/demo/#vaadin-router-getting-started-demos"
-                  appearance="hypertext"
-                  >Vaadin Router</fluent-anchor
-                >
-              </li>
-            </ul>
-          </fluent-card>
-
-          <fluent-anchor href="/about" appearance="accent">Navigate to About</fluent-anchor>
+      <app-header enableBack="${true}"></app-header>
+      <div class="hero">
+        <hero-decor></hero-decor>
+        <!-- <pwa-install>Install Repose</pwa-install> -->
+        <div class="hero__inner">
+          <div class="hero__top-content">
+            <h1>Intelligent Daily Mood Journal</h1>
+            <p>Repose is your personal mood tracking companion that helps you organize and reflect upon your daily thoughts.</p>
+            <fluent-anchor href="/journal" appearance="lightweight">Mood check-in</fluent-anchor>
+            <div class="entries">
+              <fluent-accordion-item class="main-accordion">
+                <span slot="heading">See your past journals</span>
+                <div class="panel">
+                  ${this.renderEntries(this.last7DaysJournal ? this.last7DaysJournal : [])}
+                </div>
+              </fluent-accordion-item>
+            </div>
+          </div>
+          <div class="hero__bottom-content">
+          <img src="assets/media/humans.svg" alt="Humans">
+          </div>
         </div>
-
-        <pwa-install>Install PWA Starter</pwa-install>
       </div>
+      <app-footer></app-footer>
+    `;
+  }
+
+  renderEntries(entries: JournalEntry[][]) {
+    return html`
+      ${entries.map((entry: JournalEntry[]) => html`
+        <fluent-accordion-item class="child-accordion">
+          <span slot="heading">${entry&&entry[0].date ? `📆 Your thoughts from ${entry[0].date}` : 'Today'}</span>
+          <div class="panel">
+            ${entry ? entry.map((entry: JournalEntry) => html`
+              <fluent-accordion-item class="child-accordion">
+                <span slot="heading">${entry&&entry.time ? `📝 At ${entry.time} you wrote:` : ''}</span>
+                <div class="panel">
+                <p class="panel__title">${entry&&entry.title ? entry.title : ''}</p>
+                <p class="panel__body">${entry&&entry.entry ? entry.entry : ''}</p>
+                </div>
+              </fluent-accordion-item>
+            `) : 'Start journaling by clicking the "mood check-in" button 👆🏼'}
+          </div>
+        </fluent-accordion-item>
+      `)}
     `;
   }
 }
