@@ -65,6 +65,10 @@ export class AppJournal extends LitElement {
         border-radius: 15px;
         color: #45B08C;
       }
+      fluent-anchor {
+        border-radius: 15px;
+        color: #45B08C;
+      }
       .submit fluent-button {
         width: 10em;
         margin: 25px;
@@ -132,8 +136,10 @@ export class AppJournal extends LitElement {
     if(entry.title) {
       this.pushNewEntry(entryCollection, entry);
       this.clearJournalFields();
+      this.showSuccess();
     } else {
       this.showWarningDialog()
+
     }
   }
 
@@ -170,6 +176,13 @@ export class AppJournal extends LitElement {
     this.errorDialog.hidden = false;
   }
 
+  private showSuccess() {
+    this.confirmDialog.hidden = false;
+  }
+  private DismissShowSuccess() {
+    this.confirmDialog.hidden = true;
+  }
+
   private dismissWarningDialog() {
     this.errorDialog.hidden = true;
   }
@@ -182,6 +195,9 @@ export class AppJournal extends LitElement {
 
   @query('#errorDialog')
   errorDialog!: HTMLElement;
+
+  @query('#confirmDialog')
+  confirmDialog!: HTMLElement;
 
 
   render() {
@@ -230,6 +246,12 @@ export class AppJournal extends LitElement {
           <fluent-button appearance="lightweight" @click=${this.dismissWarningDialog}>
             Try Again
           </fluent-button>
+        </fluent-dialog>
+        <fluent-dialog id="confirmDialog" hidden=${true}>
+          <h4> Your daily mood journal has been added.</h4>
+          <fluent-anchor href="/" appearance="lightweight" @click=${this.DismissShowSuccess}>
+            Return to Repose
+          </fluent-anchor>
         </fluent-dialog>
       </div>
       <app-footer></app-footer>
