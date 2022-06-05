@@ -1,3 +1,6 @@
+# Repose
+Repose is a Mood Journaling Web App that can be used to personally add and track your moods by selecting your mood, adding a title and sharing some thoughts. Repose also allows your to track previous journals you created.
+
 # pwa-starter
 
 Please use our [main repository for any issues/bugs/features suggestion](https://github.com/pwa-builder/PWABuilder/issues/new/choose).
