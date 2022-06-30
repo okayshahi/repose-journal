@@ -1,4 +1,7 @@
 {
+  "homepage" : "https://jmrocco.github.io/",
+  "name": "my-website",
+  "version": "0.1.0",
   "name": "pwa-starter",
   "version": "0.0.1",
   "description": "A starter kit for building PWAs!",
